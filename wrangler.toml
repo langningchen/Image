@@ -1,0 +1,6 @@
+name = "image"
+main = "Source/index.ts"
+compatibility_date = "2024-07-01"
+
+[placement]
+mode = "smart"
