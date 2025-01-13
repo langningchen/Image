@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.min.js"></script>
+    <title>Image</title>
+</head>
+
+<body>
+    <div class="container mt-3">
+        <h3>Image</h3>
+        <hr>
+        <p>
+            This is an image hosting service.
+            Just paste in your image or select your image bellow, and you will get an URL in a few seconds!
+        </p>
+        <p>
+            This project is created by
+            <a href="https://github.com/langningchen">Langning Chen</a>
+            for learning and communication purposes only. It is open sourced on
+            <a href="https://github.com/langningchen/image">GitHub</a>
+            and licensed under
+            <a href="https://github.com/langningchen/image/blob/main/LICENSE">GPL-3.0</a>.
+        <p>
+        <div class="mb-3 input-group">
+            <input type="file" class="form-control" id="upFile" multiple>
+            <button class="btn btn-primary" id="upButton" disabled>Upload</button>
+        </div>
+        <div id="imageContainer" class="d-flex flex-wrap"></div>
+        <pre></pre>
+    </div>
+    <script>
+        const fileList = [];
+
+        const addImage = async (imageId) => {
+            const imageContainer = document.getElementById("imageContainer");
+            const card = document.createElement("div");
+            card.className = "card m-2";
+            card.style.width = "18rem";
+            const img = document.createElement("img");
+            img.src = "/" + imageId;
+            img.className = "card-img-top";
+            card.appendChild(img);
+            const cardBody = document.createElement("div");
+            cardBody.className = "card-body";
+            card.appendChild(cardBody);
+            const cardLink = document.createElement("a");
+            cardLink.href = "/" + imageId;
+            cardLink.target = "_blank";
+            cardLink.className = "card-link";
+            cardLink.innerText = "View raw";
+            cardBody.appendChild(cardLink);
+            const cardButton = document.createElement("a");
+            cardButton.href = "#";
+            cardButton.className = "card-link";
+            cardButton.innerText = "Copy URL";
+            cardButton.addEventListener("click", () => {
+                navigator.clipboard.writeText(location.origin + "/" + imageId);
+                cardButton.innerText = "Copied!";
+                setTimeout(() => { cardButton.innerText = "Copy URL"; }, 1000);
+            });
+            cardBody.appendChild(cardButton);
+            imageContainer.appendChild(card);
+        };
+
+        const upload = async (dataUrl) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(dataUrl);
+            return new Promise((resolve, reject) => {
+                reader.onload = async () => {
+                    const imageID = await fetch("/upload", { body: reader.result, method: "POST", }).then(r => r.text());
+                    if (!imageID) { reject(); }
+                    else {
+                        await addImage(imageID);
+                        localStorage.setItem("images", [localStorage.getItem("images"), imageID].filter(Boolean).join(","));
+                        resolve();
+                    }
+                };
+            });
+        };
+
+        const upFile = document.getElementById("upFile");
+        const upButton = document.getElementById("upButton");
+        upFile.addEventListener("change", () => { upButton.disabled = upFile.files.length == 0; });
+        upButton.addEventListener("click", async () => {
+            upButton.disabled = true;
+            upButton.innerText = "Uploading...";
+            for (let i = 0; i < upFile.files.length; i++) {
+                await upload(upFile.files[i]);
+            }
+            upFile.value = "";
+            upButton.innerText = "Upload";
+        });
+
+        window.addEventListener("paste", async (EventData) => {
+            let Items = EventData.clipboardData.items;
+            for (let i = 0; i < Items.length; i++) {
+                if (Items[i].type.indexOf("image") != -1) {
+                    await upload(Items[i].getAsFile());
+                }
+            }
+        });
+
+        localStorage.getItem("images")?.split(",").forEach(async (imageId) => { await addImage(imageId); });
+    </script>
+</body>
+
+</html>
