@@ -51,7 +51,19 @@ export default {
         }
         else if (request.method == 'GET') {
             const ImageID = new URL(request.url).pathname.substring(1);
-            if (ImageID == '') { return new Response('', { status: 404, }); }
+            if (ImageID == '') { 
+                // Return 404 for root path - static assets are served by Cloudflare Workers automatically
+                return new Response('', { status: 404, }); 
+            }
+            
+            // Check if client has cached version using ETag
+            const clientETag = request.headers.get('If-None-Match');
+            const imageETag = `"${ImageID}"`;
+            
+            if (clientETag === imageETag) {
+                return new Response(null, { status: 304 });
+            }
+            
             return await fetch(new URL('https://api.github.com/repos/' + env.GithubOwner + '/' + env.GithubRepo + '/contents/' + ImageID + '.jpeg?1=1'), {
                 method: 'GET',
                 headers: {
@@ -60,7 +72,18 @@ export default {
                     'User-Agent': 'langningchen-image',
                 },
             }).then(async (res) => {
-                return new Response(await res.blob(), { headers: { 'Content-Type': 'image/jpeg', }, });
+                if (!res.ok) {
+                    return new Response('Image not found', { status: 404 });
+                }
+                
+                return new Response(await res.blob(), { 
+                    headers: { 
+                        'Content-Type': 'image/jpeg',
+                        'Cache-Control': 'public, max-age=31536000, immutable',
+                        'ETag': imageETag,
+                        'Last-Modified': new Date().toUTCString(),
+                    }, 
+                });
             }).catch((Error) => {
                 return new Response(String(Error), { status: 404, });
             });
