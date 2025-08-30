@@ -46,22 +46,37 @@
             const cardBody = document.createElement("div");
             cardBody.className = "card-body";
             card.appendChild(cardBody);
-            const cardLink = document.createElement("a");
-            cardLink.href = "/" + imageId;
-            cardLink.target = "_blank";
-            cardLink.className = "card-link";
-            cardLink.innerText = "View raw";
-            cardBody.appendChild(cardLink);
-            const cardButton = document.createElement("a");
-            cardButton.href = "#";
-            cardButton.className = "card-link";
-            cardButton.innerText = "Copy URL";
-            cardButton.addEventListener("click", () => {
+            const copyUrlButton = document.createElement("a");
+            copyUrlButton.href = "#";
+            copyUrlButton.className = "card-link";
+            copyUrlButton.innerText = "Copy URL";
+            copyUrlButton.addEventListener("click", () => {
                 navigator.clipboard.writeText(location.origin + "/" + imageId);
-                cardButton.innerText = "Copied!";
-                setTimeout(() => { cardButton.innerText = "Copy URL"; }, 1000);
+                copyUrlButton.innerText = "Copied!";
+                setTimeout(() => { copyUrlButton.innerText = "Copy URL"; }, 1000);
             });
-            cardBody.appendChild(cardButton);
+            cardBody.appendChild(copyUrlButton);
+            const copyMarkdownButton = document.createElement("a");
+            copyMarkdownButton.href = "#";
+            copyMarkdownButton.className = "card-link";
+            copyMarkdownButton.innerText = "Copy Markdown";
+            copyMarkdownButton.addEventListener("click", () => {
+                navigator.clipboard.writeText(`![image](${location.origin}/${imageId})`);
+                copyMarkdownButton.innerText = "Copied!";
+                setTimeout(() => { copyMarkdownButton.innerText = "Copy Markdown"; }, 1000);
+            });
+            cardBody.appendChild(copyMarkdownButton);
+            const deleteButton = document.createElement("a");
+            deleteButton.href = "#";
+            deleteButton.className = "card-link text-danger";
+            deleteButton.innerText = "Delete";
+            deleteButton.addEventListener("click", () => {
+                const images = localStorage.getItem("images")?.split(",") ?? [];
+                const updatedImages = images.filter(id => id !== imageId);
+                localStorage.setItem("images", updatedImages.join(","));
+                card.remove();
+            });
+            cardBody.appendChild(deleteButton);
             imageContainer.appendChild(card);
         };
 
