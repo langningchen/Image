@@ -103,7 +103,7 @@
             }
         });
 
-        localStorage.getItem("images")?.split(",").forEach(async (imageId) => { await addImage(imageId); });
+        (localStorage.getItem("images")?.split(",") ?? []).reverse().forEach(async (imageId) => { await addImage(imageId); });
     </script>
 </body>
 
