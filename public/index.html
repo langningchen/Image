@@ -65,7 +65,11 @@
             imageContainer.appendChild(card);
         };
 
+        const upFile = document.getElementById("upFile");
+        const upButton = document.getElementById("upButton");
         const upload = async (dataUrl) => {
+            upButton.disabled = true;
+            upButton.innerText = "Uploading...";
             const reader = new FileReader();
             reader.readAsDataURL(dataUrl);
             return new Promise((resolve, reject) => {
@@ -79,19 +83,15 @@
                     }
                 };
             });
+            upFile.value = "";
+            upButton.innerText = "Upload";
         };
 
-        const upFile = document.getElementById("upFile");
-        const upButton = document.getElementById("upButton");
         upFile.addEventListener("change", () => { upButton.disabled = upFile.files.length == 0; });
         upButton.addEventListener("click", async () => {
-            upButton.disabled = true;
-            upButton.innerText = "Uploading...";
             for (let i = 0; i < upFile.files.length; i++) {
                 await upload(upFile.files[i]);
             }
-            upFile.value = "";
-            upButton.innerText = "Upload";
         });
 
         window.addEventListener("paste", async (EventData) => {
