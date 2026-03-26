@@ -10,14 +10,14 @@
     "cf-typegen": "wrangler types"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.12.5",
+    "@cloudflare/vitest-pool-workers": "^0.13.4",
     "@cloudflare/workers-types": "^4.20250830.0",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.2",
     "typescript": "^5.9.2",
     "vite": "^7.1.11",
-    "wrangler": "^4.59.3"
+    "wrangler": "^4.77.0"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
