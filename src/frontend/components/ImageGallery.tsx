@@ -120,7 +120,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, onImageDeleted }) =
                   height: 200,
                   objectFit: 'cover'
                 }}
-                image={`/${imageId}`}
+                image={`/${imageId}?search`}
                 alt="Uploaded image"
                 loading="lazy"
                 onError={(e) => {

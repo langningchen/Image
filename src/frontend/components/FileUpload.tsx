@@ -220,6 +220,9 @@ const FileUpload: React.FC<FileUploadProps> = ({ onImageUploaded }) => {
         <Typography variant="body2" color="text.secondary">
           Click to select files, drag & drop, or paste images
         </Typography>
+        <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+          Uploaded images are automatically deleted after 7 days without being accessed.
+        </Typography>
         
         {uploading && (
           <Box sx={{ mt: 2, width: '100%' }}>

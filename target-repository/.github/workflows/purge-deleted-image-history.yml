@@ -1,0 +1,64 @@
+name: Purge deleted image history
+
+on:
+  schedule:
+    - cron: "23 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: purge-deleted-image-history
+  cancel-in-progress: false
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out complete default-branch history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install git-filter-repo
+        run: python3 -m pip install --disable-pip-version-check git-filter-repo
+
+      - name: Purge eligible image paths
+        id: filter
+        env:
+          RETENTION_DAYS: "7"
+        run: |
+          before_sha="$(git rev-parse HEAD)"
+          remote_url="$(git remote get-url origin)"
+
+          bash scripts/purge-deleted-image-history.sh
+
+          after_sha="$(git rev-parse HEAD)"
+          {
+            echo "before_sha=$before_sha"
+            echo "remote_url=$remote_url"
+            if [[ "$before_sha" == "$after_sha" ]]; then
+              echo "changed=false"
+            else
+              echo "changed=true"
+            fi
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Force-push rewritten history
+        if: steps.filter.outputs.changed == 'true'
+        env:
+          BEFORE_SHA: ${{ steps.filter.outputs.before_sha }}
+          REMOTE_URL: ${{ steps.filter.outputs.remote_url }}
+          TARGET_BRANCH: ${{ github.ref_name }}
+        run: |
+          if git remote get-url origin >/dev/null 2>&1; then
+            git remote set-url origin "$REMOTE_URL"
+          else
+            git remote add origin "$REMOTE_URL"
+          fi
+
+          git push \
+            --force-with-lease="refs/heads/${TARGET_BRANCH}:${BEFORE_SHA}" \
+            origin "HEAD:refs/heads/${TARGET_BRANCH}"
