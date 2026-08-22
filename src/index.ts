@@ -17,7 +17,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 **********************************************************************/
 
 const IMAGE_ID_PATTERN = /^[a-z]{32}$/;
-const IMAGE_PATH_PATTERN = /^[a-z]{32}\.jpeg$/;
+const IMAGE_PATH_PATTERN = /^[a-z]{32}\.(png|jpeg)$/;
+const IMAGE_EXTENSIONS = ['png', 'jpeg'] as const;
+type ImageExtension = (typeof IMAGE_EXTENSIONS)[number];
 const ACCESS_KEY_PREFIX = 'image:';
 const RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const GITHUB_API_VERSION = '2022-11-28';
@@ -80,9 +82,9 @@ async function recordAccess(env: Env, imageId: string, timestamp = Date.now()): 
     });
 }
 
-function imageResponseHeaders(imageId: string): HeadersInit {
+function imageResponseHeaders(imageId: string, imageExtension: ImageExtension): HeadersInit {
     return {
-        'Content-Type': 'image/jpeg',
+        'Content-Type': imageExtension === 'png' ? 'image/png' : 'image/jpeg',
         // Deliberately keep the original long-lived cache. Only requests that
         // actually reach this Worker renew the seven-day inactivity timer.
         'Cache-Control': 'public, max-age=31536000, immutable',
@@ -101,16 +103,18 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
         imageId += String.fromCharCode(Math.floor(Math.random() * 26) + 97);
     }
 
-    const imageData = image.replace(/^data:image\/[^;]+;base64,/, '');
-    if (!imageData) {
+    const imageMatch = image.match(/^data:image\/([^;]+);base64,(.+)$/);
+    if (!imageMatch) {
         return new Response('Invalid image data', {
             status: 400,
             headers: corsHeaders,
         });
     }
+    const imageExtension: ImageExtension = imageMatch[1].toLowerCase() === 'png' ? 'png' : 'jpeg';
+    const imageData = imageMatch[2];
 
     try {
-        const response = await fetch(githubApiUrl(env, `/contents/${imageId}.jpeg`), {
+        const response = await fetch(githubApiUrl(env, `/contents/${imageId}.${imageExtension}`), {
             method: 'PUT',
             headers: {
                 ...githubHeaders(env),
@@ -131,7 +135,7 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
         }
 
         const jsonResponse = await response.json() as GithubContentResponse;
-        if (jsonResponse.content?.name !== `${imageId}.jpeg`) {
+        if (jsonResponse.content?.name !== `${imageId}.${imageExtension}`) {
             console.error('Unexpected upload response:', jsonResponse);
             return new Response('Upload failed', {
                 status: 500,
@@ -169,19 +173,31 @@ async function handleImageRequest(request: Request, env: Env, ctx: ExecutionCont
         return new Response('Image not found', { status: 404, headers: corsHeaders });
     }
 
-    const headers = imageResponseHeaders(imageId);
-    if (request.headers.get('If-None-Match') === `"${imageId}"`) {
-        return new Response(null, { status: 304, headers });
-    }
-
     try {
-        const githubResponse = await fetch(githubApiUrl(env, `/contents/${imageId}.jpeg`), {
-            method: 'GET',
-            headers: githubHeaders(env, 'application/vnd.github.raw+json'),
-        });
+        let githubResponse: Response | undefined;
+        let imageExtension: ImageExtension | undefined;
+        for (const extension of IMAGE_EXTENSIONS) {
+            const response = await fetch(githubApiUrl(env, `/contents/${imageId}.${extension}`), {
+                method: 'GET',
+                headers: githubHeaders(env, 'application/vnd.github.raw+json'),
+            });
+            if (response.ok) {
+                githubResponse = response;
+                imageExtension = extension;
+                break;
+            }
+            if (response.status !== 404) {
+                throw new Error(`GitHub image fetch failed: ${imageId}.${extension} ${response.status}`);
+            }
+        }
 
-        if (!githubResponse.ok) {
+        if (!githubResponse || !imageExtension) {
             return new Response('Image not found', { status: 404, headers: corsHeaders });
+        }
+
+        const headers = imageResponseHeaders(imageId, imageExtension);
+        if (request.headers.get('If-None-Match') === `"${imageId}"`) {
+            return new Response(null, { status: 304, headers });
         }
 
         // `?search` is used only by the uploader's local gallery preview and must
@@ -216,7 +232,10 @@ async function listCurrentImageIds(env: Env): Promise<Set<string>> {
     const imageIds = new Set<string>();
     for (const item of treeResponse.tree ?? []) {
         if (item.type === 'blob' && item.path && IMAGE_PATH_PATTERN.test(item.path)) {
-            imageIds.add(item.path.slice(0, -'.jpeg'.length));
+            const match = item.path.match(/^([a-z]{32})\.(png|jpeg)$/);
+            if (match) {
+                imageIds.add(match[1]);
+            }
         }
     }
     return imageIds;
@@ -256,35 +275,38 @@ async function listAccessTimes(env: Env): Promise<Map<string, number>> {
 }
 
 async function deleteImageFromGithub(env: Env, imageId: string): Promise<void> {
-    const contentUrl = githubApiUrl(env, `/contents/${imageId}.jpeg`);
-    const metadataResponse = await fetch(contentUrl, { headers: githubHeaders(env) });
+    for (const extension of IMAGE_EXTENSIONS) {
+        const contentUrl = githubApiUrl(env, `/contents/${imageId}.${extension}`);
+        const metadataResponse = await fetch(contentUrl, { headers: githubHeaders(env) });
 
-    if (metadataResponse.status === 404) {
+        if (metadataResponse.status === 404) {
+            continue;
+        }
+        if (!metadataResponse.ok) {
+            throw new Error(`Could not read ${imageId}.${extension} before deletion: ${metadataResponse.status}`);
+        }
+
+        const metadata = await metadataResponse.json() as GithubContentResponse;
+        if (!metadata.sha) {
+            throw new Error(`GitHub did not return a SHA for ${imageId}.${extension}`);
+        }
+
+        const deleteResponse = await fetch(contentUrl, {
+            method: 'DELETE',
+            headers: {
+                ...githubHeaders(env),
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                message: `Delete ${imageId}.${extension} after 7 days without access`,
+                sha: metadata.sha,
+            }),
+        });
+
+        if (!deleteResponse.ok && deleteResponse.status !== 404) {
+            throw new Error(`Could not delete ${imageId}.${extension}: ${deleteResponse.status} ${await deleteResponse.text()}`);
+        }
         return;
-    }
-    if (!metadataResponse.ok) {
-        throw new Error(`Could not read ${imageId}.jpeg before deletion: ${metadataResponse.status}`);
-    }
-
-    const metadata = await metadataResponse.json() as GithubContentResponse;
-    if (!metadata.sha) {
-        throw new Error(`GitHub did not return a SHA for ${imageId}.jpeg`);
-    }
-
-    const deleteResponse = await fetch(contentUrl, {
-        method: 'DELETE',
-        headers: {
-            ...githubHeaders(env),
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            message: `Delete ${imageId}.jpeg after 7 days without access`,
-            sha: metadata.sha,
-        }),
-    });
-
-    if (!deleteResponse.ok && deleteResponse.status !== 404) {
-        throw new Error(`Could not delete ${imageId}.jpeg: ${deleteResponse.status} ${await deleteResponse.text()}`);
     }
 }
 
