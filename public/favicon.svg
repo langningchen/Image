@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>VanishPic</title>
+  <defs>
+    <linearGradient id="g" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1976d2"/>
+      <stop offset="1" stop-color="#54b983"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="#101a25"/>
+  <path d="M17 19h30a5 5 0 0 1 5 5v23a5 5 0 0 1-5 5H17a5 5 0 0 1-5-5V24a5 5 0 0 1 5-5Z" fill="url(#g)"/>
+  <circle cx="41.5" cy="29.5" r="4.5" fill="#101a25"/>
+  <path d="m17 45 9-10 7 7 5-5 9 8H17Z" fill="#101a25"/>
+  <path d="M24 12h16" stroke="#1976d2" stroke-width="4" stroke-linecap="round"/>
+</svg>

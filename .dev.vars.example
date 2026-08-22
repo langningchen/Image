@@ -1,0 +1,4 @@
+ADMIN_PASSWORD=replace-with-a-long-admin-password
+SESSION_SECRET=replace-with-a-random-secret
+IP_HASH_SECRET=replace-with-another-random-secret
+CONFIG_ENCRYPTION_KEY=replace-with-a-third-random-secret

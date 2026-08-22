@@ -1,30 +1,46 @@
 {
-  "name": "image",
-  "version": "0.0.1",
+  "name": "vanishpic",
+  "version": "1.0.0",
+  "description": "An anonymous, governable temporary image host for Cloudflare Workers with automatic expiry, moderation, and optional R2 or GitHub storage.",
   "private": true,
+  "packageManager": "pnpm@11.18.0",
   "scripts": {
-    "build": "vite build",
-    "dev": "vite",
-    "deploy": "npm run build && wrangler deploy",
-    "start": "wrangler dev",
-    "cf-typegen": "wrangler types"
-  },
-  "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.13.4",
-    "@cloudflare/workers-types": "^4.20260317.1",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.1",
-    "typescript": "^6.0.2",
-    "vite": "^8.0.16",
-    "wrangler": "^4.77.0"
+    "dev": "next dev",
+    "build": "next build",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write --unsafe .",
+    "deploy:setup": "node scripts/deploy.mjs",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings --include-runtime false --strict-vars false cloudflare-bindings.generated.d.ts",
+    "db:migrate:local": "wrangler d1 migrations apply image-metadata --local",
+    "db:migrate:remote": "wrangler d1 migrations apply image-metadata --remote"
   },
   "dependencies": {
+    "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@mui/icons-material": "^7.3.9",
-    "@mui/material": "^7.3.9",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "@mui/icons-material": "^9.2.0",
+    "@mui/material": "^9.2.0",
+    "@mui/material-nextjs": "latest",
+    "@mui/x-data-grid": "^9.10.1",
+    "@opennextjs/cloudflare": "latest",
+    "next": "latest",
+    "next-intl": "latest",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.6",
+    "@cloudflare/workers-types": "^5.20260729.1",
+    "@types/node": "latest",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10",
+    "wrangler": "^4.115.0"
   }
 }

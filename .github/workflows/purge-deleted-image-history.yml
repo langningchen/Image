@@ -1,0 +1,34 @@
+name: Purge deleted image history
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Image storage branch to rewrite
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: purge-deleted-image-history
+  cancel-in-progress: false
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.branch || vars.IMAGE_STORAGE_BRANCH || github.event.repository.default_branch }}
+      - uses: actions/setup-python@v5
+      - name: Install git-filter-repo
+        run: pipx install git-filter-repo
+      - name: Rewrite expired image history
+        env:
+          TARGET_BRANCH: ${{ inputs.branch || vars.IMAGE_STORAGE_BRANCH || github.event.repository.default_branch }}
+        run: ./scripts/purge-deleted-image-history.sh

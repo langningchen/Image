@@ -1,4 +1,14 @@
 .dev.vars
+.vanishpic-deploy-secrets.json
+.env*
+!.dev.vars.example
+!.env.example
+.next/
+.open-next/
 .wrangler/
+coverage/
 node_modules/
+*.tsbuildinfo
 worker-configuration.d.ts
+npm-debug.log*
+pnpm-debug.log*
