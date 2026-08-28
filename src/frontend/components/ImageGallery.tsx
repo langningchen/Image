@@ -169,7 +169,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({ images, onImageDeleted }) =
         </DialogTitle>
         <DialogContent>
           <DialogContentText id="delete-dialog-description">
-            Are you sure you want to delete this image? This action cannot be undone.
+            Are you sure you want to delete this image? Please note that only the image ID will be removed from the gallery, and the actual image file will remain on the server.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
