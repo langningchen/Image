@@ -60,8 +60,9 @@ const FileUpload: React.FC<FileUploadProps> = ({ onImageUploaded }) => {
         canvas.height = height;
         ctx.drawImage(img, 0, 0, width, height);
         
-        // Compress and return
-        resolve(canvas.toDataURL('image/jpeg', quality));
+        // Keep PNG uploads in PNG format to preserve transparency.
+        const mimeType = /^data:image\/png;/i.test(dataUrl) ? 'image/png' : 'image/jpeg';
+        resolve(canvas.toDataURL(mimeType, quality));
       };
       
       img.src = dataUrl;
