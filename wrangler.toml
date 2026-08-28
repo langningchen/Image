@@ -12,7 +12,7 @@ not_found_handling = "single-page-application"
 mode = "smart"
 
 [triggers]
-crons = ["43 3 * * *"]
+crons = ["45 3 * * *"]
 
 # Create this namespace with `npx wrangler kv namespace create IMAGE_ACCESS`,
 # then uncomment the binding and replace the ID before deploying.
